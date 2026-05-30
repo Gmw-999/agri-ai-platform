@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./agri_ai_service
+      dockerfile: Dockerfile
+    container_name: agri-api
+    ports:
+      - "${API_SERVER_PORT:-8000}:8000"
+    environment:
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_PORT=8000
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-root}
+      - DB_NAME_AGRI=${DB_NAME_AGRI:-agri_db}
+      - DB_NAME_PESTICIDES=${DB_NAME_PESTICIDES:-agri_pesticides_db}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - QWEATHER_API_KEY=${QWEATHER_API_KEY}
+      - BAIDU_API_KEY=${BAIDU_API_KEY}
+      - BAIDU_SECRET_KEY=${BAIDU_SECRET_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./agri_ai_service/data:/app/data
+      - ../yolo-weights:/yolo-weights:ro
+      - ../resnet-weights:/resnet-weights:ro
+      - ../deeplabv3_best.pth:/deeplabv3_best.pth:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - agri-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: agri-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: agri_db
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./agri_ai_service/data:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - agri-network
+    command: --default-authentication-plugin=mysql_native_password
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  agri-network:
+    driver: bridge

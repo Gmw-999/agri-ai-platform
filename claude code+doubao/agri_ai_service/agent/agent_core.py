@@ -19,6 +19,7 @@ from core.llm_factory import LLMFactory
 from agent.memory import SessionMemory, UserProfileManager
 from agent.tool_registry import ToolRegistry
 from agent.drug_enricher import enrich_drug_links
+from utils.tracer import AgentTrace
 
 logger = logging.getLogger("agri_ai.agent")
 
@@ -90,6 +91,9 @@ class AgentCore:
         session.add_message("user", user_message)
         logger.info(f"[Agent] 处理消息 | session={session_id[:8]} | openid={openid[:8] or 'anon'} | has_image={image_data is not None}")
 
+        # 初始化 Trace
+        trace = AgentTrace(session_id, user_message, has_image=(image_data is not None))
+
         vision_results = []
 
         # ===== 1.5 图片处理（如果有图片） =====
@@ -105,6 +109,8 @@ class AgentCore:
         if quick_reply:
             session.add_message("assistant", quick_reply)
             logger.info(f"[Agent] 快速回复 | intent=闲聊")
+            trace.log_step("quick_reply", 0, output_data=quick_reply[:200])
+            trace.finish("success")
             return {
                 "reply": quick_reply,
                 "session_id": session_id,
@@ -115,11 +121,18 @@ class AgentCore:
             }
 
         # ===== 2. 规划阶段：意图识别 + 工具选择 =====
+        import time as _time
+        _plan_start = _time.time()
         try:
             plan = self._plan(user_message, session, profile, image_description)
+            trace.log_step("plan", 0,
+                          input_data={"query": user_message[:200]},
+                          output_data=plan,
+                          duration_ms=int((_time.time() - _plan_start) * 1000))
         except Exception as e:
             logger.error(f"[Agent] 规划失败: {e}", exc_info=True)
             plan = {"intent": "无法识别", "tools": [], "direct_response": True}
+            trace.log_step("plan", 0, error=str(e))
 
         intent = plan.get("intent", "一般咨询")
         tools_to_call = plan.get("tools", [])
@@ -140,7 +153,12 @@ class AgentCore:
 
                 logger.info(f"[Agent] ⚡ 步骤 {step_idx + 1}: {tool_name} | 输入: {tool_input}")
                 # 传入 session_id 用于频次限制
+                _tool_start = _time.time()
                 result = self.tool_registry.execute(tool_name, session_id=session_id, **tool_input)
+                trace.log_step("tool_call", step_idx + 1,
+                              input_data={"tool": tool_name, "args": tool_input},
+                              output_data=result[:500] if result else None,
+                              duration_ms=int((_time.time() - _tool_start) * 1000))
                 # 药品相关工具不截断，确保图片和购买链接完整传递
                 drug_tools = {"pesticide_recommend", "drug_links", "pest_treatment"}
                 if tool_name not in drug_tools and len(result) > MAX_TOOL_RESULT_LEN:
@@ -181,6 +199,8 @@ class AgentCore:
         session.add_message("assistant", reply)
 
         logger.info(f"[Agent] ✅ 完成 | intent={intent} | tools={executed_tools}")
+        trace.log_step("synthesize", len(executed_tools) + 1, output_data=reply[:200])
+        trace.finish("success")
         return {
             "reply": reply,
             "session_id": session_id,

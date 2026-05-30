@@ -542,6 +542,35 @@ async def proxy_image(url: str):
 
 # ====================== 启动 ======================
 if __name__ == "__main__":
+# ====================== Agent Trace 接口 ======================
+
+@app.get("/api/traces")
+async def get_traces(limit: int = 20):
+    """获取最近的 Agent Trace 列表"""
+    from utils.tracer import get_recent_traces
+    traces = get_recent_traces(limit)
+    return JSONResponse(content={"success": True, "traces": traces})
+
+
+@app.get("/api/traces/{trace_id}")
+async def get_trace_detail(trace_id: str):
+    """获取单个 Trace 的详细信息"""
+    from utils.tracer import get_trace_detail
+    trace = get_trace_detail(trace_id)
+    if not trace:
+        return JSONResponse(status_code=404, content={"error": "Trace 不存在"})
+    return JSONResponse(content={"success": True, "trace": trace})
+
+
+@app.get("/api/traces/stats/summary")
+async def get_trace_stats():
+    """获取 Trace 统计信息"""
+    from utils.tracer import get_trace_stats
+    stats = get_trace_stats()
+    return JSONResponse(content={"success": True, "stats": stats})
+
+
+if __name__ == "__main__":
     import uvicorn
     if not llm:
         logger.error("LLM未初始化")
