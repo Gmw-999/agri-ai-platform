@@ -38,8 +38,9 @@ env/
 agri_ai_service/logs/
 *.log
 
-# 向量数据库
+# 向量数据库（SQL 建表文件除外）
 agri_ai_service/data/
+!agri_ai_service/data/*.sql
 
 # 模型文件
 agri_ai_service/models/
