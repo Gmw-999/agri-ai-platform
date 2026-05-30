@@ -125,3 +125,43 @@ class DeepSeekLLM(LLM, BaseLLM):
 
     def chat_batch(self, prompts: List[str]) -> List[str]:
         return [self.chat_fast(p) for p in prompts]
+
+    def chat_stream(self, prompt: str, temperature: float = None, max_tokens: int = None):
+        """流式对话，逐个 token yield"""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json; charset=utf-8",
+            "Accept": "text/event-stream",
+        }
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature if temperature is not None else 0.7,
+            "max_tokens": max_tokens if max_tokens is not None else 2048,
+            "stream": True,
+        }
+        try:
+            response = self._session.post(
+                url=self.api_base,
+                headers=headers,
+                json=payload,
+                timeout=self.timeout - 1,
+                verify=True,
+                stream=True,
+            )
+            response.raise_for_status()
+            for line in response.iter_lines(decode_unicode=True):
+                if line and line.startswith("data: "):
+                    data_str = line[6:]
+                    if data_str.strip() == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(data_str)
+                        delta = data.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            yield content
+                    except json.JSONDecodeError:
+                        continue
+        except Exception as e:
+            raise ValueError(f"DeepSeek 流式调用失败: {str(e)[:200]}")

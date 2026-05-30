@@ -408,6 +408,45 @@ async def agent_chat(req: AgentChatRequest):
         )
 
 
+@app.post("/api/agent/chat/stream")
+async def agent_chat_stream(req: AgentChatRequest):
+    """Agent 流式对话，SSE 逐 token 推送合成回复"""
+    try:
+        image_bytes = None
+        if req.image_base64:
+            from utils.image_utils import base64_to_image
+            image_bytes = base64_to_image(req.image_base64)
+
+        result = _agent_core.process(
+            user_message=req.message,
+            session_id=req.session_id or f"stream_{req.openid or 'anon'}",
+            openid=req.openid or "anonymous",
+            image_data=image_bytes,
+        )
+        reply = result["reply"]
+
+        async def stream_gen():
+            meta = json.dumps({
+                "type": "meta", "intent": result["intent"],
+                "tools_used": result["tools_used"],
+                "session_id": result["session_id"],
+            }, ensure_ascii=False)
+            yield f"data: {meta}\n\n"
+            for ch in reply:
+                yield f"data: {json.dumps({'type': 'token', 'content': ch}, ensure_ascii=False)}\n\n"
+                await asyncio.sleep(0.008)
+            yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
+
+        return StreamingResponse(
+            stream_gen(),
+            media_type="text/event-stream; charset=utf-8",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        )
+    except Exception as e:
+        logger.error(f"Agent流式API异常：{str(e)}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 
 
 
