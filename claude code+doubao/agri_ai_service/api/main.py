@@ -579,8 +579,6 @@ async def proxy_image(url: str):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-# ====================== 启动 ======================
-if __name__ == "__main__":
 # ====================== Agent Trace 接口 ======================
 
 @app.get("/api/traces")
