@@ -373,8 +373,8 @@ async def agent_chat(req: AgentChatRequest):
                     "code": 400, "msg": "图片 Base64 解码失败", "data": None
                 })
 
-        # Agent 处理（支持图片）
-        result = agent_engine.process(
+        # Agent 处理（异步版，LLM/DB 调用在线程池执行，不阻塞事件循环）
+        result = await agent_engine.process_async(
             user_message=user_msg or "(用户上传了图片)",
             session_id=req.session_id,
             openid=req.openid,

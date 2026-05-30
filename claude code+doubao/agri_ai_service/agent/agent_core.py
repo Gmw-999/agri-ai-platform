@@ -10,6 +10,7 @@ Agent 核心引擎
 - 视觉模型（YOLOv8/ResNet/DeepLabV3）自动/手动调用
 - 生成防治方案后自动附加药品购买链接
 """
+import asyncio
 import json
 import re
 import logging
@@ -209,6 +210,20 @@ class AgentCore:
             "steps": tools_to_call,
             "vision_results": vision_results,
         }
+
+    async def process_async(
+        self,
+        user_message: str,
+        session_id: str,
+        openid: str = "",
+        image_data: Optional[bytes] = None,
+    ) -> Dict[str, Any]:
+        """异步版 process()——在 FastAPI 端点中调用，不阻塞事件循环"""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            lambda: self.process(user_message, session_id, openid, image_data)
+        )
 
     # ====================== 图片处理 ======================
 
