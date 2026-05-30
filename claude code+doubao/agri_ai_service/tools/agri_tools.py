@@ -185,19 +185,14 @@ def pest_treatment_from_image(pest_type: str, crop_type: str, severity: str = "�
                 drug_name = ensure_utf8_string(str(drug.get("通用名称", "")).strip())
                 if not drug_name:
                     continue
-                # 从MySQL查询药品URL
+                # 从MySQL查询药品URL（使用连接池）
                 try:
-                    import pymysql
-                    from config.settings import get_db_config
-                    conn = pymysql.connect(**get_db_config("agri_pesticides_db"))
-                    cursor = conn.cursor(pymysql.cursors.DictCursor)
-                    cursor.execute(
+                    from utils.db import query_one
+                    row = query_one(
                         "SELECT drug_name, image_url, purchase_url FROM pesticides WHERE drug_name LIKE %s LIMIT 1",
-                        (f"%{drug_name}%",)
+                        (f"%{drug_name}%",),
+                        database="agri_pesticides_db"
                     )
-                    row = cursor.fetchone()
-                    cursor.close()
-                    conn.close()
                     if row:
                         img = str(row.get("image_url", "")).strip()
                         buy = str(row.get("purchase_url", "")).strip()
@@ -318,39 +313,34 @@ def farm_log_operation(query: str) -> str:
         content = data.get("content", "")
         log_id = data.get("log_id", None)
 
-        # 连接数据库
-        from config.settings import get_db_config
-        conn = pymysql.connect(**get_db_config("agri_pesticides_db"))
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        # 使用连接池操作数据库
+        from utils.db import execute, execute_last_id, query_all
 
-        # 1. 记录日志
         if action == "log":
-            create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            sql = "INSERT INTO farm_logs (content, create_time) VALUES (%s, %s)"
-            cursor.execute(sql, (content, create_time))
-            conn.commit()
+            log_id = execute_last_id(
+                "INSERT INTO farm_logs (content, create_time) VALUES (%s, %s)",
+                (content, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                database="agri_db"
+            )
             return json.dumps({
                 "success": True,
                 "msg": "日志已保存到数据库"
             }, ensure_ascii=False)
 
-        # 2. 查询日志
         elif action == "query":
-            cursor.execute("SELECT id, content, create_time FROM farm_logs ORDER BY id DESC LIMIT 30")
-            logs = cursor.fetchall()
+            logs = query_all(
+                "SELECT id, content, create_time FROM farm_logs ORDER BY id DESC LIMIT 30",
+                database="agri_db"
+            )
             return json.dumps({
                 "success": True,
                 "logs": logs
             }, ensure_ascii=False)
 
-        # 3. 删除日志（新增）
         elif action == "delete":
             if not log_id:
                 return json.dumps({"error": "请指定要删除的日志ID"}, ensure_ascii=False)
-
-            sql = "DELETE FROM farm_logs WHERE id = %s"
-            cursor.execute(sql, (log_id,))
-            conn.commit()
+            execute("DELETE FROM farm_logs WHERE id = %s", (log_id,), database="agri_db")
             return json.dumps({
                 "success": True,
                 "msg": f"已删除日志 ID：{log_id}"
@@ -372,9 +362,6 @@ import pymysql
 import logging
 
 logger = logging.getLogger(__name__)
-
-from config.settings import get_db_config
-DB_CONFIG = get_db_config("agri_pesticides_db")
 
 @Cached(pesticide_cache, ttl=1800)
 def simple_drug_links(demand: str) -> str:
@@ -411,30 +398,26 @@ def simple_drug_links(demand: str) -> str:
         logger.error(f"LLM推荐药品失败: {e}")
         return json.dumps({"error": "推荐药品失败", "recommended_drugs": []}, ensure_ascii=False)
 
-    # ============= Step 2: 用药品名搜数据库 =============
+    # ============= Step 2: 用药品名搜数据库（使用连接池） =============
     try:
-        conn = pymysql.connect(**DB_CONFIG)
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        from utils.db import query_all
 
         all_drugs = []
         seen = set()
         for name in drug_names:
-            cursor.execute(
+            rows = query_all(
                 "SELECT drug_name, image_url, purchase_url FROM pesticides WHERE drug_name LIKE %s LIMIT 2",
                 (f"%{name}%",),
+                database="agri_pesticides_db"
             )
-            for d in cursor.fetchall():
+            for d in rows:
                 key = d["drug_name"].strip()
                 if key and key not in seen:
                     seen.add(key)
-                    # 图片URL通过代理转发（绕过微信小程序域名白名单）
                     img = d.get("image_url", "")
                     if img and str(img).startswith("http"):
                         d["image_url"] = proxy_image_url(str(img))
                     all_drugs.append(d)
-
-        cursor.close()
-        conn.close()
 
         logger.info(f"数据库匹配到 {len(all_drugs)} 种药品: {[d['drug_name'] for d in all_drugs]}")
         return json.dumps({"recommended_drugs": all_drugs}, ensure_ascii=False, indent=2)

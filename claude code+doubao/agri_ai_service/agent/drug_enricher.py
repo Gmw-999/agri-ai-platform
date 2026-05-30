@@ -10,8 +10,8 @@ import re
 from typing import List, Optional
 from urllib.parse import quote
 
-import pymysql
-from config.settings import API_SERVER_BASE, get_db_config
+from config.settings import API_SERVER_BASE
+from utils.db import query_all
 
 logger = logging.getLogger("agri_ai.drug_enricher")
 
@@ -24,25 +24,17 @@ def _proxy_image_url(url: str) -> str:
         return url
     return PROXY_IMAGE_BASE + quote(url, safe="")
 
-DB_CONFIG = get_db_config("agri_pesticides_db")
-
 
 def _search_drug(keyword: str) -> List[dict]:
-    """模糊搜索农药数据库，返回匹配的药品信息"""
+    """模糊搜索农药数据库，返回匹配的药品信息（使用连接池）"""
     try:
-        conn = pymysql.connect(**DB_CONFIG)
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
         sql = """
         SELECT drug_name, image_url, purchase_url
         FROM pesticides
         WHERE drug_name LIKE %s
         LIMIT 3
         """
-        cursor.execute(sql, (f"%{keyword}%",))
-        drugs = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return drugs
+        return query_all(sql, (f"%{keyword}%",), database="agri_pesticides_db")
     except Exception as e:
         logger.warning(f"药品搜索失败 [{keyword}]: {e}")
         return []
