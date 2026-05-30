@@ -14,8 +14,11 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 加载环境变量
-load_dotenv(Path(__file__).parent.parent / ".env")
+# 加载环境变量（优先找 agri_ai_service/.env，回退到 claude code+doubao/.env）
+_env_path = Path(__file__).parent.parent / ".env"
+if not _env_path.exists():
+    _env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(_env_path)
 
 # ====================== 基础路径 ======================
 BASE_DIR = Path(__file__).parent.parent
