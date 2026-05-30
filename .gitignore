@@ -19,10 +19,7 @@ agri-uni-app/unpackage/
 react/dist/
 agri-miniapp/dist/
 
-# ===== Model Weights (large files) =====
-yolo-weights/
-resnet-weights/
-*.pth
+# ===== Model Weights (managed by Git LFS) =====
 
 # ===== Environment =====
 .env

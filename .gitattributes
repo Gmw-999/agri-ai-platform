@@ -1,0 +1,4 @@
+resnet-weights/*.pt filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
+train_38class_fixed/weights/*.pt filter=lfs diff=lfs merge=lfs -text
+yolo-weights/*.pt filter=lfs diff=lfs merge=lfs -text
