@@ -136,31 +136,52 @@ LOG_LEVEL = _env("LOG_LEVEL", "INFO")
 import pandas as pd
 from core.llm_factory import LLMFactory
 
+_llm = None
+
 
 def _init_llm():
     """初始化 LLM 实例"""
+    global _llm
+    if _llm is not None:
+        return _llm
+
     if LLM_PROVIDER == "deepseek":
         if not DEEPSEEK_API_KEY:
-            raise RuntimeError(
-                "使用 DeepSeek 需要设置 DEEPSEEK_API_KEY 环境变量。\n"
-                "请在 .env 文件中填写: DEEPSEEK_API_KEY=你的密钥"
-            )
-        return LLMFactory.init_llm(
+            print("[配置] 未设置 DEEPSEEK_API_KEY，LLM 将在配置密钥后延迟初始化")
+            return None
+        _llm = LLMFactory.init_llm(
             provider="deepseek",
             api_key=DEEPSEEK_API_KEY,
             model=DEEPSEEK_MODEL,
         )
     elif LLM_PROVIDER == "doubao":
-        return LLMFactory.init_llm(
+        if not DOUBAO_API_KEY:
+            print("[配置] 未设置 DOUBAO_API_KEY，LLM 将在配置密钥后延迟初始化")
+            return None
+        _llm = LLMFactory.init_llm(
             provider="doubao",
             api_key=DOUBAO_API_KEY,
             model="doubao-pro",
         )
     else:
-        raise ValueError(f"不支持的 LLM 供应商: {LLM_PROVIDER}")
+        print(f"[配置] 未知的 LLM 供应商: {LLM_PROVIDER}")
+        return None
+    return _llm
 
 
-llm = _init_llm()
+def get_llm():
+    """获取 LLM 单例（延迟初始化）"""
+    return _init_llm()
+
+# 模块级 llm 变量（延迟加载，兼容旧代码）
+_llm = None
+
+
+def __getattr__(name):
+    """模块级属性访问拦截，支持 llm 延迟加载"""
+    if name == "llm":
+        return _init_llm()
+    raise AttributeError(f"module 'config.settings' has no attribute '{name}'")
 
 
 def load_pesticide_excel():
