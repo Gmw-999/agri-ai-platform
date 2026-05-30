@@ -1,0 +1,55 @@
+export default defineAppConfig({
+  pages: [
+    'pages/home/index',
+    'pages/ai-chat/index',
+    'pages/knowledge/index',
+    'pages/knowledge/detail',
+    'pages/knowledge/favorites',
+    'pages/knowledge/history',
+    'pages/weather/index',
+    'pages/reminder/index',
+    'pages/reminder/add',
+    'pages/reminder/calendar',
+    'pages/reminder/pest-warning',
+    'pages/profile/index',
+    'pages/result/index',
+  ],
+  window: {
+    navigationBarTitleText: '农智 AI 助手',
+    navigationBarBackgroundColor: '#ffffff',
+    navigationBarTextStyle: 'black',
+    backgroundColor: '#f8f9fa',
+  },
+  tabBar: {
+    color: '#999999',
+    selectedColor: '#2e8b57',
+    backgroundColor: '#ffffff',
+    borderStyle: 'black',
+    list: [
+      {
+        pagePath: 'pages/home/index',
+        text: '首页',
+        iconPath: 'assets/home.png',
+        selectedIconPath: 'assets/home-active.png',
+      },
+      {
+        pagePath: 'pages/ai-chat/index',
+        text: 'AI问答',
+        iconPath: 'assets/chat.png',
+        selectedIconPath: 'assets/chat-active.png',
+      },
+      {
+        pagePath: 'pages/knowledge/index',
+        text: '知识库',
+        iconPath: 'assets/knowledge.png',
+        selectedIconPath: 'assets/knowledge-active.png',
+      },
+      {
+        pagePath: 'pages/profile/index',
+        text: '我的',
+        iconPath: 'assets/user.png',
+        selectedIconPath: 'assets/user-active.png',
+      },
+    ],
+  },
+});

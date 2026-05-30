@@ -1,0 +1,35 @@
+{
+  "pages": [
+    {"path": "pages/home/index", "style": {"navigationBarTitleText": "农智 AI 助手", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/ai-chat/index", "style": {"navigationBarTitleText": "AI 智能助手", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/knowledge/index", "style": {"navigationBarTitleText": "农技知识库", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/knowledge/detail", "style": {"navigationBarTitleText": "知识详情", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/knowledge/favorites", "style": {"navigationBarTitleText": "我的收藏", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/knowledge/history", "style": {"navigationBarTitleText": "浏览历史", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/weather/index", "style": {"navigationBarTitleText": "农事天气", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/reminder/index", "style": {"navigationBarTitleText": "农事提醒", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/reminder/add", "style": {"navigationBarTitleText": "新建提醒", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/reminder/calendar", "style": {"navigationBarTitleText": "农事日历", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/reminder/pest-warning", "style": {"navigationBarTitleText": "病虫害预警", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/profile/index", "style": {"navigationBarTitleText": "我的", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}},
+    {"path": "pages/result/index", "style": {"navigationBarTitleText": "识别结果", "navigationBarBackgroundColor": "#ffffff", "navigationBarTextStyle": "black"}}
+  ],
+  "globalStyle": {
+    "navigationBarTitleText": "农智 AI 助手",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f8f9fa"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#2e8b57",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {"pagePath": "pages/home/index", "text": "首页", "iconPath": "static/assets/home.png", "selectedIconPath": "static/assets/home-active.png"},
+      {"pagePath": "pages/ai-chat/index", "text": "AI问答", "iconPath": "static/assets/chat.png", "selectedIconPath": "static/assets/chat-active.png"},
+      {"pagePath": "pages/knowledge/index", "text": "知识库", "iconPath": "static/assets/knowledge.png", "selectedIconPath": "static/assets/knowledge-active.png"},
+      {"pagePath": "pages/profile/index", "text": "我的", "iconPath": "static/assets/user.png", "selectedIconPath": "static/assets/user-active.png"}
+    ]
+  }
+}

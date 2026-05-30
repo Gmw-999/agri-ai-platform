@@ -1,0 +1,52 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.egg
+.venv/
+venv/
+env/
+
+# ===== Node =====
+node_modules/
+npm-debug.log*
+
+# ===== uni-app =====
+agri-uni-app/unpackage/
+
+# ===== Build =====
+react/dist/
+agri-miniapp/dist/
+
+# ===== Model Weights (large files) =====
+yolo-weights/
+resnet-weights/
+*.pth
+
+# ===== Environment =====
+.env
+.env.local
+.env.*.local
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== IDE =====
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
+.history/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ===== Sensitive =====
+*.key
+*.pem
+credentials.json
