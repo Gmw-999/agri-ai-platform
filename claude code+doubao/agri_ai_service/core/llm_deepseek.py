@@ -80,7 +80,7 @@ class DeepSeekLLM(LLM, BaseLLM):
         try:
             response = self._session.post(
                 url=self.api_base, headers=headers, json=payload,
-                timeout=self.timeout - 1, verify=False, stream=False,
+                timeout=self.timeout - 1, verify=True, stream=False,
             )
             response.raise_for_status()
             data = safe_json_loads(response.text)

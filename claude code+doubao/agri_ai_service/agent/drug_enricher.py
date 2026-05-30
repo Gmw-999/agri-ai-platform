@@ -11,7 +11,7 @@ from typing import List, Optional
 from urllib.parse import quote
 
 import pymysql
-from config.settings import API_SERVER_BASE
+from config.settings import API_SERVER_BASE, get_db_config
 
 logger = logging.getLogger("agri_ai.drug_enricher")
 
@@ -24,14 +24,7 @@ def _proxy_image_url(url: str) -> str:
         return url
     return PROXY_IMAGE_BASE + quote(url, safe="")
 
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 3306,
-    "user": "root",
-    "password": "123456",
-    "database": "agri_pesticides_db",
-    "charset": "utf8mb4",
-}
+DB_CONFIG = get_db_config("agri_pesticides_db")
 
 
 def _search_drug(keyword: str) -> List[dict]:

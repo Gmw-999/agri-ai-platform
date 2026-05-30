@@ -143,7 +143,7 @@ class DoubaoLLM(LLM, BaseLLM):
                 headers=headers,
                 json=payload,
                 timeout=self.timeout - 1,
-                verify=False,
+                verify=True,
                 stream=False,
             )
 

@@ -160,10 +160,11 @@ CATEGORY_IDS = {
 def init_llm():
     """初始化 DeepSeek LLM"""
     from core.llm_factory import LLMFactory
+    from config.settings import DEEPSEEK_API_KEY, DEEPSEEK_MODEL
     LLMFactory.init_llm(
         provider="deepseek",
-        api_key="REDACTED_KEY",
-        model="deepseek-chat",
+        api_key=DEEPSEEK_API_KEY,
+        model=DEEPSEEK_MODEL,
     )
     return LLMFactory.get_llm()
 
@@ -239,11 +240,8 @@ def insert_mysql(entries: List[dict]):
     """将生成的数据写入 MySQL agri_knowledge 表"""
     try:
         import pymysql
-        conn = pymysql.connect(
-            host="localhost", port=3306, user="root",
-            password="123456", database="agri_db",
-            charset="utf8mb4",
-        )
+        from config.settings import get_db_config
+        conn = pymysql.connect(**get_db_config("agri_db"))
         cursor = conn.cursor()
 
         # 检查已存在的 title（去重）

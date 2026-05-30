@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 from datetime import datetime
 
 # 图片代理基础URL（与前端 API_BASE 同域，绕过微信小程序域名白名单）
-from config.settings import API_SERVER_BASE
+from config.settings import API_SERVER_BASE, QWEATHER_API_KEY
 PROXY_IMAGE_BASE = f"{API_SERVER_BASE}/api/proxy/image?url="
 
 
@@ -22,8 +22,7 @@ def proxy_image_url(url: str) -> str:
         return url
     return PROXY_IMAGE_BASE + quote(url, safe="")
 
-# ====================== 填入你的和风天气API KEY ======================
-QWEATHER_API_KEY = "SECRET_REMOVED"
+# 和风天气API KEY（从环境变量读取）
 
 # 全局变量（会被外部注入）
 _global_deps = {
@@ -189,10 +188,8 @@ def pest_treatment_from_image(pest_type: str, crop_type: str, severity: str = "�
                 # 从MySQL查询药品URL
                 try:
                     import pymysql
-                    conn = pymysql.connect(
-                        host="localhost", user="root", password="123456",
-                        database="agri_pesticides_db", charset="utf8mb4"
-                    )
+                    from config.settings import get_db_config
+                    conn = pymysql.connect(**get_db_config("agri_pesticides_db"))
                     cursor = conn.cursor(pymysql.cursors.DictCursor)
                     cursor.execute(
                         "SELECT drug_name, image_url, purchase_url FROM pesticides WHERE drug_name LIKE %s LIMIT 1",
@@ -289,67 +286,8 @@ def crop_growth_management(query: str) -> str:
     except:
         return json.dumps({"error": "获取管理方案失败"}, ensure_ascii=False)
 
-    import pymysql
-    from datetime import datetime
-
-# ======================工具3：田间日志（存入MySQL数据库）======================
-    def farm_log_operation(query: str) -> str:
-        llm = _get_dep("llm")
-        if not llm:
-            return json.dumps({"error": "LLM未初始化"}, ensure_ascii=False)
-
-        prompt = f"""
-    判断用户意图是【记录日志】还是【查询日志】，提取内容。
-    返回JSON：{{"action":"log或query","content":"内容"}}
-    用户问题：{query}
-    """
-        try:
-            raw = llm.invoke(prompt, temperature=0.0)
-            raw = raw.strip().replace("```json", "").replace("```", "")
-            data = json.loads(raw)
-            action = data.get("action", "")
-            content = data.get("content", "")
-
-            # 连接你的数据库
-            conn = pymysql.connect(
-                host="localhost",
-                user="root",
-                password="123456",
-                database="agri_pesticides_db",
-                charset="utf8mb4"
-            )
-            cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-            if action == "log":
-                create_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                sql = "INSERT INTO farm_logs (content, create_time) VALUES (%s, %s)"
-                cursor.execute(sql, (content, create_time))
-                conn.commit()
-                return json.dumps({
-                    "success": True,
-                    "msg": "日志已保存到数据库",
-                    "log": {"time": create_time, "content": content}
-                }, ensure_ascii=False)
-
-            elif action == "query":
-                cursor.execute("SELECT id, content, create_time FROM farm_logs ORDER BY id DESC LIMIT 20")
-                logs = cursor.fetchall()
-                return json.dumps({
-                    "success": True,
-                    "logs": logs
-                }, ensure_ascii=False)
-
-            else:
-                return json.dumps({"error": "无法识别意图"}, ensure_ascii=False)
-
-        except Exception as e:
-            return json.dumps({"error": f"日志操作失败：{str(e)}"}, ensure_ascii=False)
-
-import pymysql
-from datetime import datetime
 
 # 工具3：田间日志（存入MySQL数据库）
-# 田间日志工具（增、查、删 —— 完整数据库版）
 def farm_log_operation(query: str) -> str:
     llm = _get_dep("llm")
     if not llm:
@@ -380,14 +318,9 @@ def farm_log_operation(query: str) -> str:
         content = data.get("content", "")
         log_id = data.get("log_id", None)
 
-        # 连接你的数据库
-        conn = pymysql.connect(
-            host="localhost",
-            user="root",
-            password="123456",
-            database="agri_pesticides_db",
-            charset="utf8mb4"
-        )
+        # 连接数据库
+        from config.settings import get_db_config
+        conn = pymysql.connect(**get_db_config("agri_pesticides_db"))
         cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         # 1. 记录日志
@@ -440,14 +373,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 3306,
-    "user": "root",
-    "password": "123456",
-    "database": "agri_pesticides_db",
-    "charset": "utf8mb4"
-}
+from config.settings import get_db_config
+DB_CONFIG = get_db_config("agri_pesticides_db")
 
 @Cached(pesticide_cache, ttl=1800)
 def simple_drug_links(demand: str) -> str:
@@ -588,7 +515,7 @@ def vector_db_similarity_search(query: str, top_k: int = 3) -> str:
 
     query = ensure_utf8_string(query)
     try:
-        ret = agri_vector_db.similarity_search(query, top_k)
+        ret = agri_vector_db.search(query, top_k)
         return json.dumps({"results": ret}, ensure_ascii=False, indent=2)
     except Exception as e:
         logger.error(f"向量库搜索失败：{e}\n{traceback.format_exc()}")
@@ -608,7 +535,7 @@ def enhanced_agri_knowledge_query(question: str) -> str:
     knowledge = []
     if agri_vector_db:
         try:
-            r = agri_vector_db.similarity_search(question, 3)
+            r = agri_vector_db.search(question, 3)
             knowledge = [ensure_utf8_string(x.get("document", "")) for x in r]
         except Exception as e:
             logger.warning(f"向量库检索失败：{e}")
